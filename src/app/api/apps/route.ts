@@ -22,6 +22,11 @@ export async function GET(request: NextRequest) {
     }
 
     const userId = (session.user as any).id;
+    if (!userId) {
+      logger.warn("api/apps", "Unauthorized GET request received: session user ID is missing.");
+      return NextResponse.json({ success: false, error: "Session identity could not be verified. Please sign out and sign in again." }, { status: 401 });
+    }
+
     logger.info("api/apps", `Fetching apps for user ID: ${userId}`);
 
     const apps = await prisma.app.findMany({
@@ -48,6 +53,10 @@ export async function POST(request: NextRequest) {
     }
 
     const userId = (session.user as any).id;
+    if (!userId) {
+      logger.warn("api/apps", "Unauthorized POST request received: session user ID is missing.");
+      return NextResponse.json({ success: false, error: "Session identity could not be verified. Please sign out and sign in again." }, { status: 401 });
+    }
 
     let body: unknown;
     try {
