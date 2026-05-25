@@ -1,0 +1,59 @@
+// prisma/schema.prisma
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String?
+  email     String   @unique
+  password  String   // Hashed user credentials
+  image     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  apps      App[]
+}
+
+model App {
+  id           String          @id @default(uuid())
+  name         String
+  description  String?
+  config       String          // The raw JSON configuration text (live editing)
+  normalized   String          // The parsed, compiled, and sanitized JSON config text
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  userId       String
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  records      DynamicRecord[]
+  workflowLogs WorkflowLog[]
+}
+
+model DynamicRecord {
+  id         String   @id @default(uuid())
+  entityName String   // Name of the dynamic entity (e.g., "Ticket")
+  data       String   // JSON string of the dynamic field key-value pairs
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  appId      String
+  app        App      @relation(fields: [appId], references: [id], onDelete: Cascade)
+}
+
+model WorkflowLog {
+  id           String   @id @default(uuid())
+  workflowId   String
+  workflowName String
+  triggerType  String   // e.g., "onRecordCreated"
+  actionType   String   // e.g., "sendNotification", "webHookCall"
+  status       String   // e.g., "SUCCESS", "FAILED"
+  details      String   // JSON string with dynamic parameters and responses
+  createdAt    DateTime @default(now())
+  appId        String
+  app          App      @relation(fields: [appId], references: [id], onDelete: Cascade)
+}
