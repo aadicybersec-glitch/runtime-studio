@@ -40,15 +40,24 @@ export const authOptions: AuthOptions = {
       },
     }),
 
-    GithubProvider({
-      clientId: process.env.GITHUB_ID as string,
-      clientSecret: process.env.GITHUB_SECRET as string,
-    }),
+    // Resilient OAuth Ingest: Only mount providers if keys are defined in dashboard
+    ...(process.env.GITHUB_ID && process.env.GITHUB_SECRET
+      ? [
+          GithubProvider({
+            clientId: process.env.GITHUB_ID,
+            clientSecret: process.env.GITHUB_SECRET,
+          }),
+        ]
+      : []),
 
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID as string,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
-    }),
+    ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+      ? [
+          GoogleProvider({
+            clientId: process.env.GOOGLE_CLIENT_ID,
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+          }),
+        ]
+      : []),
   ],
 
   session: {
@@ -57,7 +66,6 @@ export const authOptions: AuthOptions = {
 
   callbacks: {
     async jwt({ token, user }) {
-      // On initial sign-in, `user` is populated; persist id onto the token
       if (user) {
         token.sub = user.id
       }
@@ -65,7 +73,6 @@ export const authOptions: AuthOptions = {
     },
 
     async session({ session, token }) {
-      // Expose the JWT subject (user id) on the session object
       if (session.user && token.sub) {
         (session.user as any).id = token.sub
       }
@@ -76,4 +83,6 @@ export const authOptions: AuthOptions = {
   pages: {
     signIn: '/auth/login',
   },
+
+  secret: process.env.NEXTAUTH_SECRET,
 }
