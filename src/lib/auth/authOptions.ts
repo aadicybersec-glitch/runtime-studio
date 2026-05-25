@@ -65,18 +65,45 @@ export const authOptions: AuthOptions = {
   },
 
   callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.sub = user.id
+    async jwt({ token, user, account }) {
+      // On initial credentials sign-in, user object is populated with DB id
+      if (user && account?.provider === 'credentials') {
+        token.sub = user.id;
       }
-      return token
+
+      // On OAuth sign-in, look up or create the user in our database by email
+      if (account && account.provider !== 'credentials' && token.email) {
+        try {
+          let dbUser = await prisma.user.findUnique({
+            where: { email: token.email },
+          });
+
+          if (!dbUser) {
+            // First time OAuth sign-in — create a database user record
+            dbUser = await prisma.user.create({
+              data: {
+                email: token.email,
+                name: token.name ?? null,
+                image: token.picture ?? null,
+                password: '', // OAuth users have no password
+              },
+            });
+          }
+
+          token.sub = dbUser.id;
+        } catch (err) {
+          console.error('[NextAuth] Failed to sync OAuth user to database:', err);
+        }
+      }
+
+      return token;
     },
 
     async session({ session, token }) {
       if (session.user && token.sub) {
-        (session.user as any).id = token.sub
+        (session.user as any).id = token.sub;
       }
-      return session
+      return session;
     },
   },
 
