@@ -71,10 +71,6 @@ function EditorPageContent() {
 
   // Load application from database
   useEffect(() => {
-    if (status === "authenticated" && !appId) {
-      router.push("/dashboard");
-      return;
-    }
     if (!appId || status !== "authenticated") return;
 
     const fetchApp = async () => {
